@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DS2 Animation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #f8fafc;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    #hw-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .hw-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .hw-card-header {
+      padding: 0.9rem 1.4rem;
+      background: #273549;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .hw-badge {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hw-card-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .hw-card ul {
+      list-style: none;
+      padding: 0.5rem 0;
+    }
+
+    .hw-card ul li a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1.4rem;
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .hw-card ul li a:hover {
+      background: #1a2744;
+      color: #dbeafe;
+    }
+
+    .hw-card ul li a::before {
+      content: "▶";
+      font-size: 0.65rem;
+      opacity: 0.6;
+    }
+
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #64748b;
+      font-size: 1rem;
+    }
+
+    .error { color: #f87171; }
+
+    footer {
+      text-align: center;
+      margin-top: 4rem;
+      color: #475569;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DS2 Animation</h1>
+    <p>資料結構與演算法 動畫展示</p>
+  </header>
+
+  <div id="hw-list">
+    <div class="loading">載入中...</div>
+  </div>
+
+  <footer>
+    <p>Powered by GitHub Pages &nbsp;·&nbsp; Auto-detected from repository</p>
+  </footer>
+
+  <script>
+    // Fallback constant; also try to infer from the GitHub Pages URL
+    // (e.g. https://owner.github.io/repo/ → owner/repo)
+    const FALLBACK_REPO = 'bluehomewu/DS2_animation';
+    function detectRepo() {
+      const { hostname, pathname } = window.location;
+      const ghPagesMatch = hostname.match(/^([^.]+)\.github\.io$/);
+      if (ghPagesMatch) {
+        const owner = ghPagesMatch[1];
+        const repoSegment = pathname.split('/').filter(Boolean)[0];
+        if (repoSegment) return owner + '/' + repoSegment;
+      }
+      return FALLBACK_REPO;
+    }
+    const REPO = detectRepo();
+    const API_BASE = 'https://api.github.com/repos/' + REPO + '/contents/';
+
+    // Convert a kebab-case filename to a human-readable title
+    function toTitle(filename) {
+      return filename
+        .replace(/\.jsx$/, '')
+        .split('-')
+        .map(function(word) {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join(' ');
+    }
+
+    async function fetchJSON(url) {
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        if (resp.status === 403) {
+          const remaining = resp.headers.get('X-RateLimit-Remaining');
+          const resetTs = resp.headers.get('X-RateLimit-Reset');
+          if (remaining === '0' && resetTs) {
+            const resetTime = new Date(parseInt(resetTs, 10) * 1000).toLocaleTimeString();
+            throw new Error('GitHub API 速率限制已達上限，請在 ' + resetTime + ' 後重試。');
+          }
+        }
+        throw new Error('HTTP ' + resp.status + ': ' + url);
+      }
+      return resp.json();
+    }
+
+    async function buildIndex() {
+      const container = document.getElementById('hw-list');
+      try {
+        const rootContents = await fetchJSON(API_BASE);
+
+        // Find all HW* directories (case-sensitive), sorted numerically
+        const hwDirs = rootContents
+          .filter(function(item) {
+            return item.type === 'dir' && /^HW\d+/.test(item.name);
+          })
+          .sort(function(a, b) {
+            return a.name.localeCompare(b.name, undefined, { numeric: true });
+          });
+
+        if (hwDirs.length === 0) {
+          container.innerHTML = '<div class="empty">尚未找到任何作業目錄。</div>';
+          return;
+        }
+
+        // Fetch each HW directory's contents in parallel
+        const dirContentsArray = await Promise.all(
+          hwDirs.map(function(dir) {
+            return fetchJSON(API_BASE + dir.name);
+          })
+        );
+
+        let html = '';
+        hwDirs.forEach(function(dir, idx) {
+          const items = dirContentsArray[idx];
+          const jsxFiles = items
+            .filter(function(item) { return item.name.endsWith('.jsx'); })
+            .sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+          const hasIndex = items.some(function(item) { return item.name === 'index.html'; });
+
+          html += '<div class="hw-card">';
+          html += '<div class="hw-card-header">';
+          html += '<span class="hw-badge">' + dir.name + '</span>';
+          html += '<h2>' + dir.name + ' Animations</h2>';
+          html += '</div>';
+          html += '<ul>';
+
+          if (jsxFiles.length > 0) {
+            jsxFiles.forEach(function(jsx) {
+              const title = toTitle(jsx.name);
+              // Try named HTML page first (e.g. heap-animation.html), fall back to index.html
+              const namedHtml = jsx.name.replace(/\.jsx$/, '.html');
+              const hasNamed = items.some(function(item) { return item.name === namedHtml; });
+              const href = hasNamed
+                ? (dir.name + '/' + namedHtml)
+                : (hasIndex ? (dir.name + '/index.html') : '#');
+              html += '<li><a href="' + href + '">' + title + '</a></li>';
+            });
+          } else if (hasIndex) {
+            html += '<li><a href="' + dir.name + '/index.html">' + dir.name + '</a></li>';
+          } else {
+            html += '<li style="padding:0.65rem 1.4rem;color:#475569;font-size:0.9rem;">（尚無可瀏覽的頁面）</li>';
+          }
+
+          html += '</ul></div>';
+        });
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML =
+          '<div class="error">⚠ 無法載入內容：' + err.message + '<br><small>請確認網路連線，或直接瀏覽各作業目錄。</small></div>';
+      }
+    }
+
+    buildIndex();
+  </script>
+</body>
+</html>
