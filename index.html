@@ -175,6 +175,25 @@
       return resp.json();
     }
 
+    // Returns the Unix timestamp (ms) of the first commit that introduced the given path.
+    // Falls back to 0 on any error so callers can still sort safely.
+    async function getFirstCommitMs(filePath) {
+      try {
+        const commits = await fetchJSON(
+          'https://api.github.com/repos/' + REPO + '/commits?path=' +
+          encodeURIComponent(filePath) + '&per_page=100'
+        );
+        if (!Array.isArray(commits) || commits.length === 0) return 0;
+        // GitHub returns commits newest-first; the last item is the initial commit.
+        // per_page=100 is the GitHub API maximum; files with >100 commits would
+        // require additional pagination, but that scenario is unlikely here.
+        const oldest = commits[commits.length - 1];
+        return new Date(oldest.commit.author.date).getTime();
+      } catch (e) {
+        return 0;
+      }
+    }
+
     async function buildIndex() {
       const container = document.getElementById('hw-list');
       try {
@@ -202,11 +221,21 @@
         );
 
         let html = '';
-        hwDirs.forEach(function(dir, idx) {
+        for (let idx = 0; idx < hwDirs.length; idx++) {
+          const dir = hwDirs[idx];
           const items = dirContentsArray[idx];
-          const jsxFiles = items
-            .filter(function(item) { return item.name.endsWith('.jsx'); })
-            .sort(function(a, b) { return a.name.localeCompare(b.name); });
+          const jsxFiles = items.filter(function(item) { return item.name.endsWith('.jsx'); });
+
+          // Sort JSX files by first-commit date (upload time), oldest first.
+          const timestamps = await Promise.all(
+            jsxFiles.map(function(jsx) {
+              return getFirstCommitMs(dir.name + '/' + jsx.name);
+            })
+          );
+          const tsMap = new Map(jsxFiles.map(function(jsx, i) { return [jsx.name, timestamps[i]]; }));
+          jsxFiles.sort(function(a, b) {
+            return (tsMap.get(a.name) || 0) - (tsMap.get(b.name) || 0);
+          });
 
           const hasIndex = items.some(function(item) { return item.name === 'index.html'; });
 
@@ -232,7 +261,7 @@
           }
 
           html += '</ul></div>';
-        });
+        }
 
         container.innerHTML = html;
       } catch (err) {
