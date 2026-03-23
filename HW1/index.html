@@ -3,26 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Heap Animation</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script>
-    window.exports = {};
-    window.require = function(mod) {
-      if (mod === "react") return React;
-      if (mod === "react-dom" || mod === "react-dom/client") return ReactDOM;
-      throw new Error("Module not found: " + mod);
-    };
-  </script>
+  <title>HW1 Animations</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    .card {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 0.9rem 1.4rem;
+      background: #273549;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    ul { list-style: none; padding: 0.5rem 0; }
+
+    ul li a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1.4rem;
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    ul li a:hover {
+      background: #1a2744;
+      color: #dbeafe;
+    }
+
+    ul li a::before {
+      content: "▶";
+      font-size: 0.65rem;
+      opacity: 0.6;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      color: #475569;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
-<body style="margin: 0">
-  <div id="root"></div>
-  <script type="text/babel" data-plugins="transform-modules-commonjs" src="heap-animation.jsx"></script>
-  <script type="text/babel">
-    const HeapAnimation = window.exports.default;
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<HeapAnimation />);
-  </script>
+<body>
+  <header>
+    <h1>HW1 Animations</h1>
+    <p>選擇要瀏覽的動畫</p>
+  </header>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="badge">HW1</span>
+      <h2>Animation List</h2>
+    </div>
+    <ul>
+      <li><a href="heap-animation.html">Heap Animation</a></li>
+      <li><a href="all-predictions.html">All Predictions</a></li>
+    </ul>
+  </div>
+
+  <footer>
+    <p><a href="../" style="color:#475569;">← 返回首頁</a></p>
+  </footer>
 </body>
 </html>
