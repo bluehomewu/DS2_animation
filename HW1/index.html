@@ -12,6 +12,7 @@
     window.require = function(mod) {
       if (mod === "react") return React;
       if (mod === "react-dom" || mod === "react-dom/client") return ReactDOM;
+      throw new Error("Module not found: " + mod);
     };
   </script>
 </head>
